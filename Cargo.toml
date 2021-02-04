@@ -1,0 +1,11 @@
+[package]
+authors = ["Carsten König <carstenkoenig92@gmail.com>"]
+edition = "2018"
+name = "proxy"
+version = "0.1.0"
+[dependencies]
+warp = "0.3"
+
+[dependencies.tokio]
+features = ["full"]
+version = "1"
