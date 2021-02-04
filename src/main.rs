@@ -34,7 +34,7 @@ async fn proxy_request(
     path: FullPath,
     headers: HeaderMap,
     body: Bytes,
-) -> Result<Box<dyn warp::Reply>, warp::Rejection> {
+) -> Result<Response<String>, warp::Rejection> {
     log_request(&method, &path);
 
     let client = hyper::Client::new();
@@ -44,9 +44,10 @@ async fn proxy_request(
     let response_body = hyper::body::to_bytes(response.into_body()).await.unwrap();
     let response_text = String::from_utf8(response_body.to_vec()).unwrap();
 
-    Ok(Box::new(
-        Response::builder().status(response_status).body(response_text).unwrap(),
-    ))
+    Ok(Response::builder()
+        .status(response_status)
+        .body(response_text)
+        .unwrap())
 }
 
 #[tokio::main]
