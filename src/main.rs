@@ -1,32 +1,13 @@
-use warp::hyper;
+use warp::hyper::body::{Body, Bytes};
+use warp::hyper::{Client, Request};
 use warp::{
     http::{method::Method, HeaderMap, Response},
-    hyper::body::Bytes,
     path::FullPath,
-    Filter,
+    Filter, Rejection,
 };
 
 fn log_request(method: &Method, path: &FullPath) {
     println!("[{}] {}", method.as_str(), path.as_str())
-}
-
-fn build_request(
-    method: &Method,
-    path: &FullPath,
-    headers: &HeaderMap,
-    body: Bytes,
-) -> hyper::Request<hyper::body::Body> {
-    let location = format!("http://localhost:9200{}", path.as_str());
-
-    let mut request = hyper::Request::builder()
-        .method(method.as_str())
-        .uri(location);
-
-    for (key, value) in headers {
-        request = request.header(key, value);
-    }
-
-    request.body(hyper::Body::from(body)).unwrap()
 }
 
 async fn proxy_request(
@@ -34,20 +15,36 @@ async fn proxy_request(
     path: FullPath,
     headers: HeaderMap,
     body: Bytes,
-) -> Result<Response<String>, warp::Rejection> {
+) -> Result<Response<Body>, Rejection> {
     log_request(&method, &path);
 
-    let client = hyper::Client::new();
+    let client = Client::new();
     let request = build_request(&method, &path, &headers, body);
     let response = client.request(request).await.unwrap();
     let response_status = response.status();
-    let response_body = hyper::body::to_bytes(response.into_body()).await.unwrap();
-    let response_text = String::from_utf8(response_body.to_vec()).unwrap();
+    let response_body = response.into_body();
 
     Ok(Response::builder()
         .status(response_status)
-        .body(response_text)
+        .body(response_body)
         .unwrap())
+}
+
+fn build_request(
+    method: &Method,
+    path: &FullPath,
+    headers: &HeaderMap,
+    body: Bytes,
+) -> Request<Body> {
+    let location = format!("http://localhost:9200{}", path.as_str());
+
+    let mut request = Request::builder().method(method.as_str()).uri(location);
+
+    for (key, value) in headers {
+        request = request.header(key, value);
+    }
+
+    request.body(Body::from(body)).unwrap()
 }
 
 #[tokio::main]
