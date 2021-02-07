@@ -1,10 +1,13 @@
 #[macro_use]
 extern crate lazy_static;
 
-use hyper_tls::{HttpsConnector};
-use warp::hyper::body::{Body, Bytes};
-use warp::hyper::client::connect::HttpConnector;
-use warp::hyper::{Client, Request};
+use hyper_tls::HttpsConnector;
+use warp::hyper::{
+    body::{Body, Bytes},
+    client::connect::HttpConnector,
+    http::StatusCode,
+    Client, Request,
+};
 use warp::{
     http::{method::Method, HeaderMap, Response},
     path::FullPath,
@@ -34,8 +37,12 @@ fn log_start_request(method: &Method, path: &FullPath) {
     println!("{:6} {}", method_str, path.as_str())
 }
 
-fn log_done_request(status: warp::hyper::http::StatusCode) {
+fn log_done_request(status: StatusCode) {
     println!(" => {}", status)
+}
+
+fn log_error_request() {
+    println!(" FAILED: proxy server unavailable")
 }
 
 async fn proxy_request(
@@ -46,33 +53,36 @@ async fn proxy_request(
 ) -> Result<Response<Body>, Rejection> {
     log_start_request(&method, &path);
 
-    let request = build_request(&method, &path, &headers, body);
-    let response = STATIC_CLIENT.request(request).await.unwrap();
-    let response_status = response.status();
-    let response_body = response.into_body();
-    log_done_request(response_status);
+    let request = build_request(method, path, headers, body);
 
-    Ok(Response::builder()
-        .status(response_status)
-        .body(response_body)
-        .unwrap())
+    if let Ok(proxy_response) = STATIC_CLIENT.request(request).await {
+        let proxy_status = proxy_response.status();
+        let proxy_headers = proxy_response.headers().clone();
+        let proxy_body = proxy_response.into_body();
+
+        let mut response = Response::new(proxy_body);
+        *response.status_mut() = proxy_status;
+        *response.headers_mut() = proxy_headers;
+        log_done_request(proxy_status);
+
+        Ok(response)
+    } else {
+        log_error_request();
+        Ok(Response::builder()
+            .status(503)
+            .body("proxy server unavailable".into())
+            .unwrap())
+    }
 }
 
-fn build_request(
-    method: &Method,
-    path: &FullPath,
-    headers: &HeaderMap,
-    body: Bytes,
-) -> Request<Body> {
+fn build_request(method: Method, path: FullPath, headers: HeaderMap, body: Bytes) -> Request<Body> {
     let location = format!("https://localhost{}", path.as_str());
 
-    let mut request = Request::builder().method(method.as_str()).uri(location);
-
-    for (key, value) in headers {
-        request = request.header(key, value);
-    }
-
-    request.body(Body::from(body)).unwrap()
+    let mut request = Request::new(Body::from(body));
+    *request.method_mut() = method;
+    *request.uri_mut() = location.parse().unwrap();
+    *request.headers_mut() = headers;
+    request
 }
 
 #[tokio::main]
