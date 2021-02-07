@@ -4,6 +4,8 @@ edition = "2018"
 name = "proxy"
 version = "0.1.0"
 [dependencies]
+hyper-tls = "*"
+lazy_static = "*"
 warp = "0.3"
 
 [dependencies.tokio]
