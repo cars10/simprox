@@ -1,7 +1,5 @@
-#[macro_use]
-extern crate lazy_static;
-
-use hyper_tls::HttpsConnector;
+use hyper_tls::{native_tls::TlsConnector, HttpsConnector};
+use std::sync::Arc;
 use warp::hyper::{
     body::{Body, Bytes},
     client::connect::HttpConnector,
@@ -14,16 +12,14 @@ use warp::{
     Filter, Rejection,
 };
 
+type HttpsClient = Client<HttpsConnector<HttpConnector>, Body>;
+
 mod args;
 
-lazy_static! {
-    static ref STATIC_CLIENT: Client<HttpsConnector<HttpConnector>, Body> = https_client();
-}
-
-fn https_client() -> Client<HttpsConnector<HttpConnector>, Body> {
-    let mut tls_builder = hyper_tls::native_tls::TlsConnector::builder();
-    let tls_builder = tls_builder.danger_accept_invalid_certs(true);
-    let tls_builder = tls_builder.danger_accept_invalid_hostnames(true);
+fn https_client(skip_ssl_verify: bool) -> HttpsClient {
+    let mut tls_builder = TlsConnector::builder();
+    let tls_builder = tls_builder.danger_accept_invalid_certs(skip_ssl_verify);
+    let tls_builder = tls_builder.danger_accept_invalid_hostnames(skip_ssl_verify);
 
     let tls = tls_builder.build().unwrap();
 
@@ -48,16 +44,14 @@ fn log_error_request() {
 }
 
 async fn proxy_request(
-    method: Method,
-    path: FullPath,
-    headers: HeaderMap,
-    body: Bytes,
+    original_request: OriginalRequest,
+    client: Arc<HttpsClient>,
 ) -> Result<Response<Body>, Rejection> {
-    log_start_request(&method, &path);
+    log_start_request(&original_request.method, &original_request.path);
 
-    let request = build_request(method, path, headers, body);
+    let request = build_request(original_request);
 
-    if let Ok(proxy_response) = STATIC_CLIENT.request(request).await {
+    if let Ok(proxy_response) = client.request(request).await {
         let proxy_status = proxy_response.status();
         let proxy_headers = proxy_response.headers().clone();
         let proxy_body = proxy_response.into_body();
@@ -77,28 +71,58 @@ async fn proxy_request(
     }
 }
 
-fn build_request(method: Method, path: FullPath, headers: HeaderMap, body: Bytes) -> Request<Body> {
-    let location = format!("https://localhost{}", path.as_str());
+fn build_request(original_request: OriginalRequest) -> Request<Body> {
+    let location = format!("http://localhost:9200{}", original_request.path.as_str());
 
-    let mut request = Request::new(Body::from(body));
-    *request.method_mut() = method;
+    let mut request = Request::new(Body::from(original_request.body));
+    *request.method_mut() = original_request.method;
     *request.uri_mut() = location.parse().unwrap();
-    *request.headers_mut() = headers;
+    *request.headers_mut() = original_request.headers;
     request
+}
+
+use std::convert::Infallible;
+
+fn with_client(
+    client: Arc<HttpsClient>,
+) -> impl Filter<Extract = (Arc<HttpsClient>,), Error = Infallible> + Clone {
+    warp::any().map(move || client.clone())
+}
+
+struct OriginalRequest {
+    method: Method,
+    path: FullPath,
+    headers: HeaderMap,
+    body: Bytes,
+}
+
+impl OriginalRequest {
+    fn new(method: Method, path: FullPath, headers: HeaderMap, body: Bytes) -> Self {
+        OriginalRequest {
+            method,
+            path,
+            headers,
+            body,
+        }
+    }
 }
 
 #[tokio::main]
 async fn main() {
     let config = args::Config::build();
     println!("Host: {}", config.host);
-    println!("Use ssl: {}", config.use_ssl);
     println!("Skip ssl verify: {}", config.skip_ssl_verify);
+
+    let client = Arc::new(https_client(config.skip_ssl_verify));
 
     let routes = warp::method()
         .and(warp::path::full())
         .and(warp::header::headers_cloned())
         .and(warp::body::bytes())
-        .and_then(proxy_request);
+        .map(OriginalRequest::new)
+        .and(with_client(client))
+        .and_then(proxy_request)
+        .with(warp::cors().allow_any_origin());
 
     warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
 }

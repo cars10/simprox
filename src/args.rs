@@ -1,11 +1,9 @@
 use clap::{App, Arg, ArgMatches};
-use regex::Regex;
 
 #[derive(Debug)]
 pub struct Config {
     pub host: String,
-    pub use_ssl: bool,
-    pub skip_ssl_verify: bool
+    pub skip_ssl_verify: bool,
 }
 
 impl Config {
@@ -13,15 +11,11 @@ impl Config {
         let matches = cli_args();
         let host = matches.value_of("host").expect("invalid host").to_string();
 
-        let ssl_re = Regex::new(r"^https://").unwrap();
-        let use_ssl = ssl_re.is_match(&host);
-
         let skip_ssl_verify = matches.is_present("skip-ssl-verify");
 
         Config {
             host,
-            use_ssl,
-            skip_ssl_verify
+            skip_ssl_verify,
         }
     }
 }
