@@ -14,6 +14,12 @@ use warp::{
     Filter, Rejection,
 };
 
+mod args;
+
+lazy_static! {
+    static ref STATIC_CLIENT: Client<HttpsConnector<HttpConnector>, Body> = https_client();
+}
+
 fn https_client() -> Client<HttpsConnector<HttpConnector>, Body> {
     let mut tls_builder = hyper_tls::native_tls::TlsConnector::builder();
     let tls_builder = tls_builder.danger_accept_invalid_certs(true);
@@ -26,10 +32,6 @@ fn https_client() -> Client<HttpsConnector<HttpConnector>, Body> {
     let https = HttpsConnector::from((http, tls.into()));
 
     Client::builder().build(https)
-}
-
-lazy_static! {
-    static ref STATIC_CLIENT: Client<HttpsConnector<HttpConnector>, Body> = https_client();
 }
 
 fn log_start_request(method: &Method, path: &FullPath) {
@@ -87,6 +89,11 @@ fn build_request(method: Method, path: FullPath, headers: HeaderMap, body: Bytes
 
 #[tokio::main]
 async fn main() {
+    let config = args::Config::build();
+    println!("Host: {}", config.host);
+    println!("Use ssl: {}", config.use_ssl);
+    println!("Skip ssl verify: {}", config.skip_ssl_verify);
+
     let routes = warp::method()
         .and(warp::path::full())
         .and(warp::header::headers_cloned())
