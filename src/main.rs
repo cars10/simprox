@@ -1,9 +1,9 @@
 use hyper_tls::{native_tls::TlsConnector, HttpsConnector};
+use log::log;
 use std::sync::Arc;
 use warp::hyper::{
     body::{Body, Bytes},
     client::connect::HttpConnector,
-    http::StatusCode,
     Client, Request,
 };
 use warp::{
@@ -15,6 +15,7 @@ use warp::{
 type HttpsClient = Client<HttpsConnector<HttpConnector>, Body>;
 
 mod args;
+mod log;
 
 fn https_client(skip_ssl_verify: bool) -> HttpsClient {
     let mut tls_builder = TlsConnector::builder();
@@ -32,15 +33,7 @@ fn https_client(skip_ssl_verify: bool) -> HttpsClient {
 
 fn log_start_request(method: &Method, path: &FullPath) {
     let method_str = format!("[{}]", method.as_str());
-    println!("{:6} {}", method_str, path.as_str())
-}
-
-fn log_done_request(status: StatusCode) {
-    println!(" => {}", status)
-}
-
-fn log_error_request() {
-    println!(" FAILED: proxy server unavailable")
+    log(format!("{:6} {}", method_str, path.as_str()))
 }
 
 async fn proxy_request(
@@ -51,28 +44,32 @@ async fn proxy_request(
 
     let request = build_request(original_request);
 
-    if let Ok(proxy_response) = client.request(request).await {
-        let proxy_status = proxy_response.status();
-        let proxy_headers = proxy_response.headers().clone();
-        let proxy_body = proxy_response.into_body();
+    match client.request(request).await {
+        Ok(proxy_response) => {
+            let proxy_status = proxy_response.status();
+            let proxy_headers = proxy_response.headers().clone();
+            let proxy_body = proxy_response.into_body();
 
-        let mut response = Response::new(proxy_body);
-        *response.status_mut() = proxy_status;
-        *response.headers_mut() = proxy_headers;
-        log_done_request(proxy_status);
+            let mut response = Response::new(proxy_body);
+            *response.status_mut() = proxy_status;
+            *response.headers_mut() = proxy_headers;
+            log(format!(" => {}", proxy_status));
 
-        Ok(response)
-    } else {
-        log_error_request();
-        Ok(Response::builder()
-            .status(503)
-            .body("proxy server unavailable".into())
-            .unwrap())
+            Ok(response)
+        }
+        Err(e) => {
+            log(format!(" FAILED: proxy server unavailable"));
+            log(format!(" {:?}", e));
+            Ok(Response::builder()
+                .status(503)
+                .body("proxy server unavailable".into())
+                .unwrap())
+        }
     }
 }
 
 fn build_request(original_request: OriginalRequest) -> Request<Body> {
-    let location = format!("http://localhost:9200{}", original_request.path.as_str());
+    let location = format!("https://localhost:443{}", original_request.path.as_str());
 
     let mut request = Request::new(Body::from(original_request.body));
     *request.method_mut() = original_request.method;
