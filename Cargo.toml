@@ -1,14 +1,12 @@
 [package]
 authors = ["Carsten König <carstenkoenig92@gmail.com>"]
 edition = "2018"
-name = "proxy"
+name = "sipose"
 version = "0.1.0"
 [dependencies]
-chrono = "*"
-clap = "*"
-hyper-tls = "*"
-lazy_static = "*"
-regex = "*"
+chrono = "0.4.19"
+clap = "2.33.3"
+hyper-tls = "0.5.0"
 warp = "0.3"
 
 [dependencies.tokio]

@@ -1,3 +1,5 @@
+#[macro_use]
+extern crate clap;
 use hyper_tls::{native_tls::TlsConnector, HttpsConnector};
 use log::log;
 use std::convert::Infallible;
