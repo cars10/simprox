@@ -32,17 +32,17 @@ fn https_client(skip_ssl_verify: bool) -> HttpsClient {
     Client::builder().build(https)
 }
 
-fn log_start_request(method: &Method, path: &FullPath) {
-    let method_str = format!("[{}]", method.as_str());
-    log(format!("{:6} {}", method_str, path.as_str()))
-}
-
 async fn proxy_request(
     original_request: OriginalRequest,
     client: Arc<HttpsClient>,
     target_host: Arc<String>,
 ) -> Result<Response<Body>, Rejection> {
-    log_start_request(&original_request.method, &original_request.path);
+    log(format!(
+        "[{}] {}{}",
+        &original_request.method.as_str(),
+        &original_request.path.as_str(),
+        &original_request.query_string()
+    ));
 
     let request = build_request(original_request, target_host);
 
@@ -71,11 +71,16 @@ async fn proxy_request(
 }
 
 fn build_request(original_request: OriginalRequest, target_host: Arc<String>) -> Request<Body> {
-    let location = format!("{}{}", target_host, original_request.path.as_str());
+    let location = format!(
+        "{}{}{}",
+        target_host,
+        original_request.path.as_str(),
+        original_request.query_string()
+    );
 
     let mut request = Request::new(Body::from(original_request.body));
     *request.method_mut() = original_request.method;
-    *request.uri_mut() = location.parse().unwrap();
+    *request.uri_mut() = location.parse().expect("invalid uri");
     *request.headers_mut() = original_request.headers;
     request
 }
@@ -92,20 +97,36 @@ fn with_target_host(
     warp::any().map(move || target_host.clone())
 }
 
+fn with_raw_query() -> impl Filter<Extract = (String,), Error = Infallible> + Clone {
+    warp::filters::query::raw()
+        .or(warp::any().map(|| String::default()))
+        .unify()
+}
+
 struct OriginalRequest {
     method: Method,
     path: FullPath,
+    query: String,
     headers: HeaderMap,
     body: Bytes,
 }
 
 impl OriginalRequest {
-    fn new(method: Method, path: FullPath, headers: HeaderMap, body: Bytes) -> Self {
+    fn new(method: Method, path: FullPath, query: String, headers: HeaderMap, body: Bytes) -> Self {
         OriginalRequest {
             method,
             path,
+            query,
             headers,
             body,
+        }
+    }
+
+    fn query_string(&self) -> String {
+        if self.query.len() > 0 {
+            format!("?{}", self.query)
+        } else {
+            String::default()
         }
     }
 }
@@ -121,6 +142,7 @@ async fn main() {
 
     let routes = warp::method()
         .and(warp::path::full())
+        .and(with_raw_query())
         .and(warp::header::headers_cloned())
         .and(warp::body::bytes())
         .map(OriginalRequest::new)

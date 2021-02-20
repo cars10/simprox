@@ -9,7 +9,10 @@ pub struct Config {
 impl Config {
     pub fn build() -> Self {
         let matches = cli_args();
-        let target_host = matches.value_of("target_host").expect("invalid target").to_string();
+        let target_host = matches
+            .value_of("target_host")
+            .expect("invalid target")
+            .to_string();
 
         let skip_ssl_verify = matches.is_present("skip-ssl-verify");
 
