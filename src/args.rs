@@ -2,19 +2,19 @@ use clap::{App, Arg, ArgMatches};
 
 #[derive(Debug)]
 pub struct Config {
-    pub host: String,
+    pub target_host: String,
     pub skip_ssl_verify: bool,
 }
 
 impl Config {
     pub fn build() -> Self {
         let matches = cli_args();
-        let host = matches.value_of("host").expect("invalid host").to_string();
+        let target_host = matches.value_of("target_host").expect("invalid target").to_string();
 
         let skip_ssl_verify = matches.is_present("skip-ssl-verify");
 
         Config {
-            host,
+            target_host,
             skip_ssl_verify,
         }
     }
@@ -26,13 +26,13 @@ fn cli_args() -> ArgMatches<'static> {
         .author("Carsten Koenig <carstenkoenig92@gmail.com>")
         .about("Simple proxy server")
         .arg(
-            Arg::with_name("host")
-                .long("host")
-                .short("h")
+            Arg::with_name("target_host")
+                .long("target_host")
+                .short("t")
                 .takes_value(true)
-                .value_name("host")
+                .value_name("target_host")
                 .required(true)
-                .help("Sets the proxy host (required)"),
+                .help("Sets the proxy target host (required)"),
         )
         .arg(
             Arg::with_name("skip-ssl-verify")

@@ -86,10 +86,10 @@ fn with_client(
     warp::any().map(move || client.clone())
 }
 
-fn with_host(
-    host: Arc<String>,
+fn with_target_host(
+    target_host: Arc<String>,
 ) -> impl Filter<Extract = (Arc<String>,), Error = Infallible> + Clone {
-    warp::any().map(move || host.clone())
+    warp::any().map(move || target_host.clone())
 }
 
 struct OriginalRequest {
@@ -113,11 +113,11 @@ impl OriginalRequest {
 #[tokio::main]
 async fn main() {
     let config = args::Config::build();
-    println!("Host: {}", config.host);
+    println!("Proxy target: {}", config.target_host);
     println!("Skip ssl verify: {}", config.skip_ssl_verify);
 
     let client = Arc::new(https_client(config.skip_ssl_verify));
-    let target_host = Arc::new(config.host);
+    let target_host = Arc::new(config.target_host);
 
     let routes = warp::method()
         .and(warp::path::full())
@@ -125,7 +125,7 @@ async fn main() {
         .and(warp::body::bytes())
         .map(OriginalRequest::new)
         .and(with_client(client))
-        .and(with_host(target_host))
+        .and(with_target_host(target_host))
         .and_then(proxy_request)
         .with(warp::cors().allow_any_origin());
 
