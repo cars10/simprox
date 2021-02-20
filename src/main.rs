@@ -134,6 +134,9 @@ impl OriginalRequest {
 #[tokio::main]
 async fn main() {
     let config = args::Config::build();
+    let addr: std::net::SocketAddr = config.listen_host.parse().expect("invalid host");
+
+    println!("Listen: {}", addr);
     println!("Proxy target: {}", config.target_host);
     println!("Skip ssl verify: {}", config.skip_ssl_verify);
 
@@ -151,5 +154,5 @@ async fn main() {
         .and_then(proxy_request)
         .with(warp::cors().allow_any_origin());
 
-    warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
+    warp::serve(routes).run(addr).await;
 }
