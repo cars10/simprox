@@ -1,5 +1,6 @@
 use hyper_tls::{native_tls::TlsConnector, HttpsConnector};
 use log::log;
+use std::convert::Infallible;
 use std::sync::Arc;
 use warp::hyper::{
     body::{Body, Bytes},
@@ -39,10 +40,11 @@ fn log_start_request(method: &Method, path: &FullPath) {
 async fn proxy_request(
     original_request: OriginalRequest,
     client: Arc<HttpsClient>,
+    target_host: Arc<String>,
 ) -> Result<Response<Body>, Rejection> {
     log_start_request(&original_request.method, &original_request.path);
 
-    let request = build_request(original_request);
+    let request = build_request(original_request, target_host);
 
     match client.request(request).await {
         Ok(proxy_response) => {
@@ -68,8 +70,8 @@ async fn proxy_request(
     }
 }
 
-fn build_request(original_request: OriginalRequest) -> Request<Body> {
-    let location = format!("https://localhost:443{}", original_request.path.as_str());
+fn build_request(original_request: OriginalRequest, target_host: Arc<String>) -> Request<Body> {
+    let location = format!("{}{}", target_host, original_request.path.as_str());
 
     let mut request = Request::new(Body::from(original_request.body));
     *request.method_mut() = original_request.method;
@@ -78,12 +80,16 @@ fn build_request(original_request: OriginalRequest) -> Request<Body> {
     request
 }
 
-use std::convert::Infallible;
-
 fn with_client(
     client: Arc<HttpsClient>,
 ) -> impl Filter<Extract = (Arc<HttpsClient>,), Error = Infallible> + Clone {
     warp::any().map(move || client.clone())
+}
+
+fn with_host(
+    host: Arc<String>,
+) -> impl Filter<Extract = (Arc<String>,), Error = Infallible> + Clone {
+    warp::any().map(move || host.clone())
 }
 
 struct OriginalRequest {
@@ -111,6 +117,7 @@ async fn main() {
     println!("Skip ssl verify: {}", config.skip_ssl_verify);
 
     let client = Arc::new(https_client(config.skip_ssl_verify));
+    let target_host = Arc::new(config.host);
 
     let routes = warp::method()
         .and(warp::path::full())
@@ -118,6 +125,7 @@ async fn main() {
         .and(warp::body::bytes())
         .map(OriginalRequest::new)
         .and(with_client(client))
+        .and(with_host(target_host))
         .and_then(proxy_request)
         .with(warp::cors().allow_any_origin());
 
