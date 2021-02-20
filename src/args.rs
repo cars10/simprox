@@ -33,7 +33,7 @@ fn cli_args() -> ArgMatches<'static> {
             .short("h")
             .takes_value(true)
             .value_name("listen_host")
-            .default_value("127.0.0.1:3030")
+            .default_value("127.0.0.1:7000")
             .help("Sets the ip/port where the proxy server itself should listen")
         )
         .arg(
