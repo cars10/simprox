@@ -2,7 +2,6 @@ use clap::{App, Arg, ArgMatches};
 
 #[derive(Debug)]
 pub struct Config {
-    pub port: u16,
     pub host: String,
     pub skip_ssl_verify: bool,
 }
