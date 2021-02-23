@@ -138,7 +138,7 @@ async fn main() {
     let config = args::Config::build();
     let addr: std::net::SocketAddr = config.listen_host.parse().expect("invalid host");
 
-    println!("Listen: {}", addr);
+    println!("Listening on: {}", addr);
     println!("Proxy target: {}", config.target_host);
     println!("Skip ssl verify: {}", config.skip_ssl_verify);
 
