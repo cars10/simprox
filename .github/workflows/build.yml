@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - '*'
+  workflow_dispatch:
+    tags:
+      description: 'github action test tag'
 
 jobs:
   publish:
