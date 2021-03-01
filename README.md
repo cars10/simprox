@@ -15,16 +15,17 @@ simprox 0.1.0
 Simple proxy server
 
 USAGE:
-    simprox [FLAGS] [OPTIONS] --target_host <host:port>
+    simprox [OPTIONS] --target_host <host:port>
 
 FLAGS:
-        --help               Prints help information
-        --skip-ssl-verify    Disable ssl certificate verification
-    -V, --version            Prints version information
+        --help       Prints help information
+    -V, --version    Prints version information
 
 OPTIONS:
-    -h, --listen_host <host:port>    Set the host for the proxy server itself [default: 127.0.0.1:7000]
-    -t, --target_host <host:port>    Sets the proxy target (required)
+    -h, --listen_host <host:port>              Set the host for the proxy server itself [env: LISTEN_HOST=]  
+                                               [default: 127.0.0.1:7000]
+        --skip-ssl-verify <skip-ssl-verify>    Disable ssl certificate verification [env: SKIP_SSL_VERIFY=]
+    -t, --target_host <host:port>              Sets the proxy target (required) [env: TARGET_HOST=]
 ```
 
 ### Examples
@@ -41,7 +42,35 @@ Listen on `0.0.0.0:7000`, proxy requests to `https://localhost:9200` and ignore 
 simprox -h 0.0.0.0:7000 -t https://localhost:9200 --skip-ssl-verify
 ```
 
+You can also use environment variables for configuration:
+
+```bash
+LISTEN_HOST=0.0.0.0:7000 TARGET_HOST=https://localhost:9200 SKIP_SSL_VERIFY= simprox
+```
+
 ## Download
+
+### Binary
+
+You can download the latest binary from [github](https://github.com/cars10/simprox/releases).
+
+### Docker
+
+Download the [image](https://hub.docker.com/r/cars10/elasticvue):
+
+```bash
+docker pull cars10/simprox
+```
+
+When using the docker image you have to make sure that the docker container can access the service that you want to proxy. Some examples:
+
+* When your service is accessible via `http://localhost:9200` you need to set `--net host`
+    * `docker run --rm --name simprox -p 7000:7000 -e LISTEN_HOST=0.0.0.0:7000 -e TARGET_HOST=http://localhost:9200 --net host cars10/simprox`
+* Your service is accessible via `http://example.com`
+    * `docker run --rm --name simprox -p 7000:7000 -e LISTEN_HOST=0.0.0.0:7000 -e TARGET_HOST=http://example.com cars10/simprox`
+* Your service is running in another docker container named `test` on port `3000`
+    * `docker run --rm --name simprox -p 7000:7000 -e LISTEN_HOST=0.0.0.0:7000 -e TARGET_HOST=http://test:3000 --link test cars10/simprox`
+
 
 ## Building
 
@@ -71,3 +100,7 @@ Instead of connecting directly to your cluster `https://my.cluster:9200` in elas
 Simply run `simprox -t https://my.cluster:9200 --skip-ssl-verify` and connect to `http://localhost:7000` in elasticvue.
 
 Yet simprox is completely generic and can be used for any combination of services where you need to proxy requests to bypass browser restrictions.
+
+## License
+
+MIT
