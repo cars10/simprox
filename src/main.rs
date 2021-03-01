@@ -1,8 +1,11 @@
 #[macro_use]
 extern crate clap;
+#[macro_use]
+extern crate log;
+use chrono::SecondsFormat;
 use hyper_tls::{native_tls::TlsConnector, HttpsConnector};
-use log::log;
 use std::convert::Infallible;
+use std::error::Error;
 use std::sync::Arc;
 use warp::hyper::{
     body::{Body, Bytes},
@@ -18,7 +21,23 @@ use warp::{
 type HttpsClient = Client<HttpsConnector<HttpConnector>, Body>;
 
 mod args;
-mod log;
+
+pub fn setup_logger() -> Result<(), Box<dyn Error>> {
+    fern::Dispatch::new()
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "[{}] {} -- {}",
+                chrono::Local::now().to_rfc3339_opts(SecondsFormat::Millis, true),
+                record.level(),
+                message
+            ))
+        })
+        .level(log::LevelFilter::Info)
+        .level_for("warp", log::LevelFilter::Off)
+        .chain(std::io::stdout())
+        .apply()?;
+    Ok(())
+}
 
 fn https_client(skip_ssl_verify: bool) -> HttpsClient {
     let mut tls_builder = TlsConnector::builder();
@@ -39,12 +58,12 @@ async fn proxy_request(
     client: Arc<HttpsClient>,
     target_host: Arc<String>,
 ) -> Result<Response<Body>, Rejection> {
-    log(format!(
+    info!(
         "[{}] {}{}",
         &original_request.method.as_str(),
         &original_request.path.as_str(),
         &original_request.query_string()
-    ));
+    );
 
     let request = build_request(original_request, target_host);
 
@@ -57,16 +76,16 @@ async fn proxy_request(
             let mut response = Response::new(proxy_body);
             *response.status_mut() = proxy_status;
             *response.headers_mut() = proxy_headers;
-            log(format!(" => {}", proxy_status));
+            info!(" => {}", proxy_status);
 
             Ok(response)
         }
         Err(e) => {
-            log(format!(" FAILED: proxy server unavailable"));
-            log(format!(" {:?}", e));
+            error!("FAILED: proxy server unavailable");
+            error!("{:?}", e);
             Ok(Response::builder()
                 .status(503)
-                .body("proxy server unavailable".into())
+                .body("proxy target unavailable".into())
                 .unwrap())
         }
     }
@@ -135,18 +154,25 @@ impl OriginalRequest {
 
 #[tokio::main]
 async fn main() {
+    setup_logger().expect("Error setting up logger");
+
     ctrlc::set_handler(|| {
-        println!("got ctrlc");
+        info!("Stopping simprox...");
         std::process::exit(0);
     })
-    .expect("Error setting Ctrl-C handler");
+    .expect("Error setting exit handler");
 
     let config = args::Config::build();
-    let addr: std::net::SocketAddr = config.listen_host.parse().expect("invalid host");
 
-    log(format!("Listening on: {}", addr));
-    log(format!("Proxy target: {}", config.target_host));
-    log(format!("Skip ssl verify: {}", config.skip_ssl_verify));
+    let addr: std::net::SocketAddr = config.listen_host.parse().unwrap_or_else(|_| {
+        error!("Invalid listen host: {}", config.listen_host);
+        std::process::exit(-1)
+    });
+
+    info!("Listening on: {}", addr);
+    info!("Proxy target: {}", config.target_host);
+    info!("Skip ssl verify: {}", config.skip_ssl_verify);
+    info!("");
 
     let client = Arc::new(https_client(config.skip_ssl_verify));
     let target_host = Arc::new(config.target_host);
