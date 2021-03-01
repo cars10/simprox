@@ -39,6 +39,7 @@ fn cli_args() -> ArgMatches<'static> {
         .about("Simple proxy server")
         .arg(
             Arg::with_name("listen_host")
+                .env("LISTEN_HOST")
                 .long("listen_host")
                 .short("h")
                 .takes_value(true)
@@ -48,6 +49,7 @@ fn cli_args() -> ArgMatches<'static> {
         )
         .arg(
             Arg::with_name("target_host")
+                .env("TARGET_HOST")
                 .long("target_host")
                 .short("t")
                 .takes_value(true)
@@ -57,6 +59,7 @@ fn cli_args() -> ArgMatches<'static> {
         )
         .arg(
             Arg::with_name("skip-ssl-verify")
+                .env("SKIP_SSL_VERIFY")
                 .long("skip-ssl-verify")
                 .help("Disable ssl certificate verification"),
         )
