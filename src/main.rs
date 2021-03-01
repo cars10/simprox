@@ -135,12 +135,18 @@ impl OriginalRequest {
 
 #[tokio::main]
 async fn main() {
+    ctrlc::set_handler(|| {
+        println!("got ctrlc");
+        std::process::exit(0);
+    })
+    .expect("Error setting Ctrl-C handler");
+
     let config = args::Config::build();
     let addr: std::net::SocketAddr = config.listen_host.parse().expect("invalid host");
 
-    println!("Listening on: {}", addr);
-    println!("Proxy target: {}", config.target_host);
-    println!("Skip ssl verify: {}", config.skip_ssl_verify);
+    log(format!("Listening on: {}", addr));
+    log(format!("Proxy target: {}", config.target_host));
+    log(format!("Skip ssl verify: {}", config.skip_ssl_verify));
 
     let client = Arc::new(https_client(config.skip_ssl_verify));
     let target_host = Arc::new(config.target_host);
