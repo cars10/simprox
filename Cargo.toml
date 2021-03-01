@@ -15,3 +15,6 @@ warp = "0.3"
 [dependencies.tokio]
 features = ["full"]
 version = "1"
+
+[profile.release]
+lto = true

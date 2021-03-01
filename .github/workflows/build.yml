@@ -4,35 +4,46 @@ on:
   push:
     tags:
       - '*'
-  workflow_dispatch:
-    tags:
-      description: 'github action test tag'
 
 jobs:
   publish:
-    name: Build for ${{ matrix.os }}
+    name: Publish for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        name: [
+            linux,
+            windows,
+            macos
+        ]
+
         include:
-          - os: ubuntu-latest
-            artifact_name: simprox
+          - name: linux
+            os: ubuntu-latest
+            artifact_name: target/release/simprox
             asset_name: simprox-linux-amd64
-          - os: windows-latest
-            artifact_name: simprox.exe
+          - name: windows
+            os: windows-latest
+            artifact_name: target/release/simprox.exe
             asset_name: simprox-windows-amd64
-          - os: macos-latest
-            artifact_name: simprox
+          - name: macos
+            os: macos-latest
+            artifact_name: target/release/simprox
             asset_name: simprox-macos-amd64
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v1
+
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+
     - name: Build
       run: cargo build --release --locked
+
     - name: Upload binaries to release
-      uses: svenstaro/upload-release-action@v2
+      uses: actions/upload-artifact@v2
       with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: target/release/${{ matrix.artifact_name }}
-        asset_name: ${{ matrix.asset_name }}
-        tag: ${{ github.ref }}
+        name: ${{ matrix.asset_name }}
+        path: ${{ matrix.artifact_name }}
