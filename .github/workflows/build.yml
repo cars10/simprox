@@ -12,9 +12,7 @@ jobs:
     strategy:
       matrix:
         name: [
-            linux,
-            windows,
-            macos
+            linux
         ]
 
         include:
@@ -22,28 +20,25 @@ jobs:
             os: ubuntu-latest
             artifact_name: target/release/simprox
             asset_name: simprox-linux-amd64
-          - name: windows
-            os: windows-latest
-            artifact_name: target/release/simprox.exe
-            asset_name: simprox-windows-amd64
-          - name: macos
-            os: macos-latest
-            artifact_name: target/release/simprox
-            asset_name: simprox-macos-amd64
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
 
     - uses: actions-rs/toolchain@v1
       with:
         profile: minimal
         toolchain: stable
 
+    - uses: Swatinem/rust-cache@v1
+
     - name: Build
       run: cargo build --release --locked
 
-    - name: Upload binaries to release
-      uses: actions/upload-artifact@v2
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        name: ${{ matrix.asset_name }}
-        path: ${{ matrix.artifact_name }}
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+
