@@ -144,10 +144,10 @@ impl OriginalRequest {
     }
 
     fn query_string(&self) -> String {
-        if self.query.len() > 0 {
-            format!("?{}", self.query)
-        } else {
+        if self.query.is_empty() {
             String::default()
+        } else {
+            format!("?{}", self.query)
         }
     }
 }
