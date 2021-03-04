@@ -10,33 +10,36 @@ jobs:
     name: Create github release
     runs-on: ubuntu-latest
     steps:
-    - name: Create Github release
+    - name: Create Github release draft
       id: create_release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
+        draft: true
         tag_name: ${{ github.ref }}
         release_name: ${{ github.ref }}
 
     - name: Save release upload for later use
-      run: echo "${{ steps.create_release.outputs.upload_url }}" > release-upload-url
+      shell: bash
+      run: |
+        mkdir artifacts
+        echo "${{ steps.create_release.outputs.upload_url }}" > artifacts/release-upload-url
+        echo "${{ steps.create_release.outputs.id }}" > artifacts/release-id
 
     - name: Upload release upload url
       uses: actions/upload-artifact@v1
       with:
-       name: release-upload-url
-       path: release-upload-url
+        name: artifacts
+        path: artifacts
 
-  publish:
+  build:
     name: Publish for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         name: [
-            linux,
-            windows,
-            macos
+            linux
         ]
 
         include:
@@ -44,14 +47,6 @@ jobs:
             os: ubuntu-latest
             asset_path: target/release/simprox
             asset_name: simprox-linux-amd64
-          - name: windows
-            os: windows-latest
-            artifact_name: target/release/simprox.exe
-            asset_name: simprox-windows-amd64
-          - name: macos
-            os: macos-latest
-            artifact_name: target/release/simprox
-            asset_name: simprox-macos-amd64
 
     steps:
     - name: Checkout code
@@ -76,13 +71,14 @@ jobs:
     - name: Download file with release upload url info
       uses: actions/download-artifact@v1
       with:
-        name: release-upload-url
-        path: release-upload-url
+        name: artifacts
+        path: artifacts
 
     - name: Save upload url in ENV
       shell: bash
       run: |
-        echo "RELEASE_UPLOAD_URL=$(cat release-upload-url)" >> $GITHUB_ENV
+        echo "RELEASE_UPLOAD_URL=$(cat artifacts/release-upload-url)" >> $GITHUB_ENV
+        echo $RELEASE_UPLOAD_URL
 
     - name: Upload release asset
       id: upload-release-asset 
@@ -94,3 +90,25 @@ jobs:
         asset_path: ${{ matrix.asset_path }}
         asset_name: ${{ matrix.asset_name }}
         asset_content_type: application/x-executable
+
+  publish:
+    name: Publish github release
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download file with release id info
+      uses: actions/download-artifact@v1
+      with:
+        name: artifacts
+        path: artifacts
+
+    - name: Save release id in ENV
+      shell: bash
+      run: |
+        echo "RELEASE_ID=$(cat artifacts/release-id)" >> $GITHUB_ENV
+        echo $RELEASE_ID
+
+    - uses: eregon/publish-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        release_id: ${{ env.RELEASE_ID }}
