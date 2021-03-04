@@ -20,21 +20,21 @@ jobs:
         tag_name: ${{ github.ref }}
         release_name: ${{ github.ref }}
 
-    - name: Save release upload for later use
+    - name: Save release-upload-url and release-id for later use
       shell: bash
       run: |
         mkdir artifacts
         echo "${{ steps.create_release.outputs.upload_url }}" > artifacts/release-upload-url
         echo "${{ steps.create_release.outputs.id }}" > artifacts/release-id
 
-    - name: Upload release upload url
+    - name: Upload release information
       uses: actions/upload-artifact@v1
       with:
         name: artifacts
         path: artifacts
 
   build:
-    name: Publish for ${{ matrix.os }}
+    name: Build for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -52,7 +52,7 @@ jobs:
           - name: windows
             os: windows-latest
             asset_path: target/release/simprox.exe
-            asset_name: simprox-windows-amd64
+            asset_name: simprox-windows-amd64.exe
           - name: macos
             os: macos-latest
             asset_path: target/release/simprox
@@ -78,7 +78,7 @@ jobs:
       if: matrix.name == 'linux' || matrix.name == 'macos'
       run: strip "target/release/simprox"
 
-    - name: Download file with release upload url info
+    - name: Download artifacts
       uses: actions/download-artifact@v1
       with:
         name: artifacts
@@ -90,7 +90,6 @@ jobs:
         echo "RELEASE_UPLOAD_URL=$(cat artifacts/release-upload-url)" >> $GITHUB_ENV
 
     - name: Upload release asset
-      id: upload-release-asset 
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -105,7 +104,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-    - name: Download file with release id info
+    - name: Download artifacts
       uses: actions/download-artifact@v1
       with:
         name: artifacts
