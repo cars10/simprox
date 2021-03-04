@@ -16,7 +16,7 @@ You can download the latest binary from [github](https://github.com/cars10/simpr
 
 ### Docker
 
-Download the [image](https://hub.docker.com/r/cars10/elasticvue):
+Download the [image](https://hub.docker.com/r/cars10/simprox):
 
 ```bash
 docker pull cars10/simprox
