@@ -1,5 +1,7 @@
 # simprox
 
+[![Docker build](https://img.shields.io/docker/automated/cars10/simprox)](https://hub.docker.com/r/cars10/simprox)
+
 | **Sim**ple **Prox**y Server
 
 Simprox is a simple and easy-to-use local proxy server. 
