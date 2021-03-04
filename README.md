@@ -7,6 +7,21 @@ Simprox is a simple and easy-to-use local proxy server.
 You can use it to bypass browser restrictions like CORS or invalid SSL certificates when working with external services in your browser.  
 It forwards the complete original request to your proxy target and returns the response to your service.
 
+
+## Download
+
+### Binary
+
+You can download the latest binary from [github](https://github.com/cars10/simprox/releases).
+
+### Docker
+
+Download the [image](https://hub.docker.com/r/cars10/elasticvue):
+
+```bash
+docker pull cars10/simprox
+```
+
 ## Usage
 
 ```
@@ -48,28 +63,41 @@ You can also use environment variables for configuration:
 LISTEN_HOST=0.0.0.0:7000 TARGET_HOST=https://localhost:9200 SKIP_SSL_VERIFY= simprox
 ```
 
-## Download
-
-### Binary
-
-You can download the latest binary from [github](https://github.com/cars10/simprox/releases).
-
 ### Docker
-
-Download the [image](https://hub.docker.com/r/cars10/elasticvue):
-
-```bash
-docker pull cars10/simprox
-```
 
 When using the docker image you have to make sure that the docker container can access the service that you want to proxy. Some examples:
 
-* When your service is accessible via `http://localhost:9200` you need to set `--net host`
-    * `docker run --rm --name simprox -p 7000:7000 -e LISTEN_HOST=0.0.0.0:7000 -e TARGET_HOST=http://localhost:9200 --net host cars10/simprox`
-* Your service is accessible via `http://example.com`
-    * `docker run --rm --name simprox -p 7000:7000 -e LISTEN_HOST=0.0.0.0:7000 -e TARGET_HOST=http://example.com cars10/simprox`
-* Your service is running in another docker container named `test` on port `3000`
-    * `docker run --rm --name simprox -p 7000:7000 -e LISTEN_HOST=0.0.0.0:7000 -e TARGET_HOST=http://test:3000 --link test cars10/simprox`
+a) When your service is accessible via `http://localhost:9200` you need to set `--net host`
+```bash
+docker run --rm \
+           --name simprox \
+           -p 7000:7000 \
+           -e LISTEN_HOST=0.0.0.0:7000 \
+           -e TARGET_HOST=http://localhost:9200 \
+           --net host \
+           cars10/simprox
+```
+
+b) Your service is accessible via `http://example.com`
+```bash
+docker run --rm \
+           --name simprox \
+           -p 7000:7000 \
+           -e LISTEN_HOST=0.0.0.0:7000 \
+           -e TARGET_HOST=http://example.com \
+           cars10/simprox
+```
+
+c) Your service is running in another docker container named `test` on port `3000`
+```bash
+docker run --rm \
+           --name simprox \
+           -p 7000:7000 \
+           -e LISTEN_HOST=0.0.0.0:7000 \
+           -e TARGET_HOST=http://test:3000 \
+           --link test \
+           cars10/simprox
+```
 
 
 ## Building
@@ -96,10 +124,11 @@ cargo build --release
 
 Simprox was originally written for [elasticvue](http://github.com/cars10/elasticvue), so users can access elasticsearch clusters that do not use trusted certificates.
 
-Instead of connecting directly to your cluster `https://my.cluster:9200` in elasticvue, you can use simprox to proxy the requests:  
+Instead of connecting directly to your cluster `https://my.cluster:9200` in elasticvue, you can use simprox to proxy the requests:
 Simply run `simprox -t https://my.cluster:9200 --skip-ssl-verify` and connect to `http://localhost:7000` in elasticvue.
 
 Yet simprox is completely generic and can be used for any combination of services where you need to proxy requests to bypass browser restrictions.
+
 
 ## License
 
