@@ -6,35 +6,11 @@ on:
       - 'v*'
 
 jobs:
-  publish:
-    name: Publish for ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        name: [
-            linux
-        ]
-
-        include:
-          - name: linux
-            os: ubuntu-latest
-            asset_path: target/release/simprox
-            asset_name: simprox-linux-amd64
-
+  create-release:
+    name: Create github release
+    runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-
-    - uses: Swatinem/rust-cache@v1
-
-    - name: Build
-      run: cargo build --release --locked
-
-    - name: Create Release
+    - name: Create Github release
       id: create_release
       uses: actions/create-release@v1
       env:
@@ -43,13 +19,78 @@ jobs:
         tag_name: ${{ github.ref }}
         release_name: ${{ github.ref }}
 
-    - name: Upload Release Asset
+    - name: Save release upload for later use
+      run: echo "${{ steps.create_release.outputs.upload_url }}" > release-upload-url
+
+    - name: Upload release upload url
+      uses: actions/upload-artifact@v1
+      with:
+       name: release-upload-url
+       path: release-upload-url
+
+  publish:
+    name: Publish for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        name: [
+            linux,
+            windows,
+            macos
+        ]
+
+        include:
+          - name: linux
+            os: ubuntu-latest
+            asset_path: target/release/simprox
+            asset_name: simprox-linux-amd64
+          - name: windows
+            os: windows-latest
+            artifact_name: target/release/simprox.exe
+            asset_name: simprox-windows-amd64
+          - name: macos
+            os: macos-latest
+            artifact_name: target/release/simprox
+            asset_name: simprox-macos-amd64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Setup rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+
+    - name: Setup rust toolchain cache
+      uses: Swatinem/rust-cache@v1
+
+    - name: Build
+      run: cargo build --release --locked
+  
+    - name: Strip release binary (linux and macos)
+      if: matrix.name == 'linux' || matrix.name == 'macos'
+      run: strip "target/release/simprox"
+
+    - name: Download file with release upload url info
+      uses: actions/download-artifact@v1
+      with:
+        name: release-upload-url
+        path: release-upload-url
+
+    - name: Save upload url in ENV
+      shell: bash
+      run: |
+        echo "RELEASE_UPLOAD_URL=$(cat release-upload-url)" >> $GITHUB_ENV
+
+    - name: Upload release asset
       id: upload-release-asset 
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        upload_url: ${{ env.RELEASE_UPLOAD_URL }}
         asset_path: ${{ matrix.asset_path }}
         asset_name: ${{ matrix.asset_name }}
         asset_content_type: application/x-executable
