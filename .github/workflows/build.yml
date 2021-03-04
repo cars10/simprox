@@ -35,12 +35,13 @@ jobs:
 
   build:
     name: Publish for ${{ matrix.os }}
-    needs: create-release
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         name: [
-            linux
+            linux,
+            windows,
+            macos
         ]
 
         include:
@@ -48,6 +49,14 @@ jobs:
             os: ubuntu-latest
             asset_path: target/release/simprox
             asset_name: simprox-linux-amd64
+          - name: windows
+            os: windows-latest
+            artifact_name: target/release/simprox.exe
+            asset_name: simprox-windows-amd64
+          - name: macos
+            os: macos-latest
+            artifact_name: target/release/simprox
+            asset_name: simprox-macos-amd64
 
     steps:
     - name: Checkout code
