@@ -1,4 +1,4 @@
-name: Build
+name: Build release
 
 on:
   push:
@@ -51,11 +51,11 @@ jobs:
             asset_name: simprox-linux-amd64
           - name: windows
             os: windows-latest
-            artifact_name: target/release/simprox.exe
+            asset_path: target/release/simprox.exe
             asset_name: simprox-windows-amd64
           - name: macos
             os: macos-latest
-            artifact_name: target/release/simprox
+            asset_path: target/release/simprox
             asset_name: simprox-macos-amd64
 
     steps:
@@ -88,7 +88,6 @@ jobs:
       shell: bash
       run: |
         echo "RELEASE_UPLOAD_URL=$(cat artifacts/release-upload-url)" >> $GITHUB_ENV
-        echo $RELEASE_UPLOAD_URL
 
     - name: Upload release asset
       id: upload-release-asset 
@@ -116,7 +115,6 @@ jobs:
       shell: bash
       run: |
         echo "RELEASE_ID=$(cat artifacts/release-id)" >> $GITHUB_ENV
-        echo $RELEASE_ID
 
     - uses: eregon/publish-release@v1
       env:
