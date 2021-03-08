@@ -1,5 +1,6 @@
 # simprox
 
+[![Build release](https://github.com/cars10/simprox/actions/workflows/build.yml/badge.svg)](https://github.com/cars10/simprox/actions/workflows/build.yml)
 [![Docker build](https://img.shields.io/docker/cloud/automated/cars10/simprox.svg)](https://hub.docker.com/r/cars10/simprox)
 
 | **Sim**ple **Prox**y Server
