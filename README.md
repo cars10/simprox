@@ -1,6 +1,6 @@
 # simprox
 
-[![Docker build](https://img.shields.io/docker/automated/cars10/simprox)](https://hub.docker.com/r/cars10/simprox)
+[![Docker build](https://img.shields.io/docker/cloud/automated/cars10/simprox.svg)](https://hub.docker.com/r/cars10/simprox)
 
 | **Sim**ple **Prox**y Server
 
