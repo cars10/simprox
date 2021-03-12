@@ -11,5 +11,12 @@ RUN apt-get update && \
 WORKDIR /usr/src/myapp
 COPY . .
 
-RUN cargo install --path .
+RUN cargo build --release --locked
+
+
+FROM debian:buster-slim
+RUN apt-get update && \
+    apt-get install -y libssl-dev && \
+    rm -rf /var/lib/apt/lists/*
+COPY --from=builder /usr/src/myapp/target/release/simprox /usr/local/bin/simprox
 CMD ["simprox"]

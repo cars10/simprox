@@ -1,10 +1,11 @@
 # simprox
 
-[![Docker build](https://img.shields.io/docker/automated/cars10/simprox)](https://hub.docker.com/r/cars10/simprox)
+[![Build release](https://github.com/cars10/simprox/actions/workflows/build.yml/badge.svg)](https://github.com/cars10/simprox/actions/workflows/build.yml)
+[![Docker build](https://img.shields.io/docker/cloud/automated/cars10/simprox.svg)](https://hub.docker.com/r/cars10/simprox)
 
 | **Sim**ple **Prox**y Server
 
-Simprox is a simple and easy-to-use local proxy server. 
+Simprox is a fast and simple local proxy server.
 
 You can use it to bypass browser restrictions like CORS or invalid SSL certificates when working with external services in your browser.  
 It forwards the complete original request to your proxy target and returns the response to your service.
@@ -14,7 +15,7 @@ It forwards the complete original request to your proxy target and returns the r
 
 ### Binary
 
-You can download the latest binary from [github](https://github.com/cars10/simprox/releases).
+You can download the latest binary for linux, macos and windows from [github](https://github.com/cars10/simprox/releases).
 
 ### Docker
 
