@@ -120,7 +120,7 @@ fn with_target_host(
 
 fn with_raw_query() -> impl Filter<Extract = (String,), Error = Infallible> + Clone {
     warp::filters::query::raw()
-        .or(warp::any().map(|| String::default()))
+        .or(warp::any().map(String::default))
         .unify()
 }
 
