@@ -1,4 +1,4 @@
-FROM rust:1.50-slim-buster as builder
+FROM rust:1.52-slim-buster as builder
 
 RUN rustup update
 RUN rustup target add x86_64-unknown-linux-musl
