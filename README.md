@@ -29,21 +29,21 @@ docker pull cars10/simprox
 
 ```
 > simprox --help
-simprox 0.1.0
 Simple proxy server
 
-USAGE:
-    simprox [OPTIONS] --target_host <host:port>
+Usage: simprox [OPTIONS] --target-host <host:port>
 
-FLAGS:
-        --help       Prints help information
-    -V, --version    Prints version information
-
-OPTIONS:
-    -h, --listen_host <host:port>              Set the host for the proxy server itself [env: LISTEN_HOST=]  
-                                               [default: 127.0.0.1:7000]
-        --skip-ssl-verify <skip-ssl-verify>    Disable ssl certificate verification [env: SKIP_SSL_VERIFY=]
-    -t, --target_host <host:port>              Sets the proxy target (required) [env: TARGET_HOST=]
+Options:
+  -l, --listen <host:port>
+          Set the host for the proxy server itself [env: LISTEN=] [default: 127.0.0.1:7000]
+  -t, --target-host <host:port>
+          Sets the proxy target (required) [env: TARGET_HOST=]
+      --skip-ssl-verify <skip-ssl-verify>
+          Disable ssl certificate verification [env: SKIP_SSL_VERIFY=]
+  -h, --help
+          Print help information
+  -V, --version
+          Print version information
 ```
 
 ### Examples
@@ -57,13 +57,13 @@ simprox -t http://localhost:9200
 Listen on `0.0.0.0:7000`, proxy requests to `https://localhost:9200` and ignore invalid SSL certificates:
 
 ```bash
-simprox -h 0.0.0.0:7000 -t https://localhost:9200 --skip-ssl-verify
+simprox -l 0.0.0.0:7000 -t https://localhost:9200 --skip-ssl-verify
 ```
 
 You can also use environment variables for configuration:
 
 ```bash
-LISTEN_HOST=0.0.0.0:7000 TARGET_HOST=https://localhost:9200 SKIP_SSL_VERIFY= simprox
+LISTEN=0.0.0.0:7000 TARGET_HOST=https://localhost:9200 SKIP_SSL_VERIFY=true simprox
 ```
 
 ### Docker
@@ -75,7 +75,7 @@ a) When your service is accessible via `http://localhost:9200` you need to set `
 docker run --rm \
            --name simprox \
            -p 7000:7000 \
-           -e LISTEN_HOST=0.0.0.0:7000 \
+           -e LISTEN=0.0.0.0:7000 \
            -e TARGET_HOST=http://localhost:9200 \
            --net host \
            cars10/simprox
@@ -86,7 +86,7 @@ b) Your service is accessible via `http://example.com`
 docker run --rm \
            --name simprox \
            -p 7000:7000 \
-           -e LISTEN_HOST=0.0.0.0:7000 \
+           -e LISTEN=0.0.0.0:7000 \
            -e TARGET_HOST=http://example.com \
            cars10/simprox
 ```
@@ -96,7 +96,7 @@ c) Your service is running in another docker container named `test` on port `300
 docker run --rm \
            --name simprox \
            -p 7000:7000 \
-           -e LISTEN_HOST=0.0.0.0:7000 \
+           -e LISTEN=0.0.0.0:7000 \
            -e TARGET_HOST=http://test:3000 \
            --link test \
            cars10/simprox
