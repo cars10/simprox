@@ -2,14 +2,14 @@
 authors = ["Carsten König <carstenkoenig92@gmail.com>"]
 edition = "2018"
 name = "simprox"
-version = "0.1.0"
+version = "0.4.0"
 [dependencies]
-chrono = "0.4.19"
+chrono = "0.4"
 clap = "2.33.3"
-ctrlc = "3.1.8"
-fern = "0.6.0"
-log = "0.4.14"
-hyper-tls = "0.5.0"
+ctrlc = "3.2"
+fern = "0.6"
+log = "0.4"
+hyper-tls = "0.5"
 warp = "0.3"
 
 [dependencies.tokio]
