@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0
+
+* update dependencies
+
+Breaking change: `--listen-host` was renamed to `--listen`
+
 ## 0.3.0
 
 * fix clippy warnings

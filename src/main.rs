@@ -164,8 +164,8 @@ async fn main() {
 
     let config = args::Config::build();
 
-    let addr: std::net::SocketAddr = config.listen_host.parse().unwrap_or_else(|_| {
-        error!("Invalid listen host: {}", config.listen_host);
+    let addr: std::net::SocketAddr = config.listen.parse().unwrap_or_else(|_| {
+        error!("Invalid listen host: {}", config.listen);
         std::process::exit(-1)
     });
 
