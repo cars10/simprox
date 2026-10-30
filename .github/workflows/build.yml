@@ -6,44 +6,11 @@ on:
       - 'v*'
 
 jobs:
-  create-release:
-    name: Create github release
-    runs-on: ubuntu-latest
-    steps:
-    - name: Create Github release draft
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        draft: true
-        tag_name: ${{ github.ref }}
-        release_name: ${{ github.ref }}
-
-    - name: Save release-upload-url and release-id for later use
-      shell: bash
-      run: |
-        mkdir artifacts
-        echo "${{ steps.create_release.outputs.upload_url }}" > artifacts/release-upload-url
-        echo "${{ steps.create_release.outputs.id }}" > artifacts/release-id
-
-    - name: Upload release information
-      uses: actions/upload-artifact@v1
-      with:
-        name: artifacts
-        path: artifacts
-
   build:
-    name: Build for ${{ matrix.os }}
+    name: Build for ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        name: [
-            linux,
-            windows,
-            macos
-        ]
-
         include:
           - name: linux
             os: ubuntu-latest
@@ -56,67 +23,47 @@ jobs:
           - name: macos
             os: macos-latest
             asset_path: target/release/simprox
-            asset_name: simprox-macos-amd64
+            asset_name: simprox-macos-arm64
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
-
-    - name: Setup rust toolchain
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+      uses: actions/checkout@v7
 
     - name: Setup rust toolchain cache
-      uses: Swatinem/rust-cache@v1
+      uses: Swatinem/rust-cache@v2
 
+    # the toolchain comes from the rust-toolchain file via the preinstalled rustup
     - name: Build
       run: cargo build --release --locked
-  
+
     - name: Strip release binary (linux and macos)
       if: matrix.name == 'linux' || matrix.name == 'macos'
       run: strip "target/release/simprox"
 
-    - name: Download artifacts
-      uses: actions/download-artifact@v1
-      with:
-        name: artifacts
-        path: artifacts
-
-    - name: Save upload url in ENV
+    - name: Rename binary
       shell: bash
-      run: |
-        echo "RELEASE_UPLOAD_URL=$(cat artifacts/release-upload-url)" >> $GITHUB_ENV
+      run: cp "${{ matrix.asset_path }}" "${{ matrix.asset_name }}"
 
-    - name: Upload release asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Upload binary
+      uses: actions/upload-artifact@v7
       with:
-        upload_url: ${{ env.RELEASE_UPLOAD_URL }}
-        asset_path: ${{ matrix.asset_path }}
-        asset_name: ${{ matrix.asset_name }}
-        asset_content_type: application/x-executable
+        name: ${{ matrix.asset_name }}
+        path: ${{ matrix.asset_name }}
 
-  publish:
+  release:
     name: Publish github release
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-    - name: Download artifacts
-      uses: actions/download-artifact@v1
+    - name: Download binaries
+      uses: actions/download-artifact@v8
       with:
-        name: artifacts
-        path: artifacts
+        path: binaries
+        merge-multiple: true
 
-    - name: Save release id in ENV
-      shell: bash
-      run: |
-        echo "RELEASE_ID=$(cat artifacts/release-id)" >> $GITHUB_ENV
-
-    - uses: eregon/publish-release@v1
+    - name: Create release
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        release_id: ${{ env.RELEASE_ID }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: gh release create "${{ github.ref_name }}" binaries/* --repo "${{ github.repository }}" --title "${{ github.ref_name }}"
