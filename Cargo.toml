@@ -1,23 +1,26 @@
 [package]
 authors = ["Carsten König <carstenkoenig92@gmail.com>"]
-edition = "2018"
+edition = "2024"
 name = "simprox"
-version = "0.4.0"
+version = "0.5.0"
 [dependencies]
-chrono = "0.4"
-ctrlc = "3.2"
-fern = "0.6"
-log = "0.4"
-hyper-tls = "0.5"
-warp = "0.3"
+chrono = "0.4.45"
+ctrlc = "3.5.2"
+fern = "0.7.1"
+log = "0.4.34"
+hyper = { version = "1.12", features = ["http1", "http2", "server", "client"] }
+hyper-util = { version = "0.1.21", features = ["client-legacy", "http1", "http2", "server", "server-auto", "tokio"] }
+http-body-util = "0.1.5"
+rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12", "logging"] }
+hyper-rustls = { version = "0.27.10", default-features = false, features = ["http1", "native-tokio", "ring", "tls12", "logging"] }
 
 [dependencies.clap]
 features = ["cargo", "env"]
-version = "4"
+version = "4.6"
 
 [dependencies.tokio]
 features = ["full"]
-version = "1"
+version = "1.54"
 
 [profile.release]
 lto = true

@@ -1,10 +1,11 @@
-use clap::{Command, Arg, ArgMatches};
+use clap::{Arg, ArgAction, ArgMatches, Command};
 
 #[derive(Debug)]
 pub struct Config {
     pub listen: String,
     pub target_host: String,
     pub skip_ssl_verify: bool,
+    pub skip_cors: bool,
 }
 
 impl Config {
@@ -18,17 +19,20 @@ impl Config {
         let mut target_host = matches
             .get_one::<String>("target_host")
             .expect("invalid target")
+            .trim_end_matches('/')
             .to_string();
         if !target_host.starts_with("http") {
             target_host = format!("http://{}", target_host)
         }
 
         let skip_ssl_verify = matches.get_flag("skip-ssl-verify");
+        let skip_cors = matches.get_flag("skip-cors");
 
         Config {
             listen,
             target_host,
             skip_ssl_verify,
+            skip_cors,
         }
     }
 }
@@ -51,17 +55,23 @@ fn cli_args() -> ArgMatches {
                 .env_os("TARGET_HOST")
                 .long("target-host")
                 .short('t')
-                .value_name("host:port")
+                .value_name("[http(s)://]host:port")
                 .required(true)
                 .help("Sets the proxy target (required)"),
         )
         .arg(
             Arg::new("skip-ssl-verify")
-                .default_value("false")
                 .env_os("SKIP_SSL_VERIFY")
                 .long("skip-ssl-verify")
-                .value_parser(clap::value_parser!(bool))
+                .action(ArgAction::SetTrue)
                 .help("Disable ssl certificate verification"),
+        )
+        .arg(
+            Arg::new("skip-cors")
+                .env_os("SKIP_CORS")
+                .long("skip-cors")
+                .action(ArgAction::SetTrue)
+                .help("Ignore target CORS headers and always allow all origins/methods/headers"),
         )
         .get_matches()
 }
